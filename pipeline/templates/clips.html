@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recent Clips</title>
+</head>
+<body>
+<h1>Recent Clips</h1>
+<ul>
+{% for c in clips %}
+<li>
+    <p>{{ c.streamer }} - {{ c.timestamp_utc }}</p>
+    <video width="320" controls src="{{ c.mp4_url }}"></video>
+    {% if c.gif_url %}<br><img src="{{ c.gif_url }}" width="320">{% endif %}
+    <p>{{ c.caption_text }}</p>
+</li>
+{% endfor %}
+</ul>
+<a href="/">Back</a>
+</body>
+</html>

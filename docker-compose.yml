@@ -1,0 +1,86 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: highlights
+    ports:
+      - "5432:5432"
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+
+  detection_aggregator:
+    build: .
+    command: uvicorn pipeline.detection_aggregator:app --host 0.0.0.0 --port 8002
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      GEMINI_API_KEY: ""
+    depends_on:
+      - kafka
+    ports:
+      - "8002:8002"
+
+  clipping_service:
+    build: .
+    command: uvicorn pipeline.clipping_service:app --host 0.0.0.0 --port 8001
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      REDIS_URL: redis://redis:6379/0
+      DB_DSN: postgresql://user:pass@postgres:5432/highlights
+      NEW_CLIPS_TOPIC: new_clips
+      GEMINI_API_KEY: ""
+    depends_on:
+      - kafka
+      - redis
+      - postgres
+    ports:
+      - "8001:8001"
+
+  highlight_consumer:
+    build: .
+    command: python -m pipeline.highlight_consumer
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      CLIP_ENDPOINT: http://clipping_service:8001/clip
+    depends_on:
+      - kafka
+      - clipping_service
+
+  webapp:
+    build: .
+    command: uvicorn pipeline.webapp:app --host 0.0.0.0 --port 8000
+    environment:
+      CLIPPING_SERVICE_URL: http://clipping_service:8001
+      KAFKA_BOOTSTRAP: kafka:9092
+      DB_DSN: postgresql://user:pass@postgres:5432/highlights
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - detection_aggregator
+      - clipping_service
+    ports:
+      - "8000:8000"

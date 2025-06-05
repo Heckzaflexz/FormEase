@@ -1,0 +1,17 @@
+aioredis
+requests
+twitchio
+numpy
+fastapi
+uvicorn
+asyncpg
+aiokafka
+boto3
+openai
+discord.py
+redis
+
+jinja2
+httpx
+python-multipart
+opencv-python

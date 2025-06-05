@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FormEase Highlights</title>
+</head>
+<body>
+<h1>FormEase Highlights</h1>
+<form action="/start" method="post">
+    <input type="text" name="stream_url" placeholder="Stream URL" required>
+    <input type="text" name="channel" placeholder="Channel" required>
+    <button type="submit">Start Stream</button>
+</form>
+<h2>Running Streams</h2>
+<ul>
+{% for c in running %}
+<li>{{ c }}
+    <form action="/stop" method="post" style="display:inline;">
+        <input type="hidden" name="channel" value="{{ c }}">
+        <button type="submit">Stop</button>
+    </form>
+</li>
+{% endfor %}
+</ul>
+<a href="/clips">View Recent Clips</a>
+</body>
+</html>
